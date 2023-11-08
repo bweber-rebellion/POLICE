@@ -15,19 +15,20 @@ from tqdm import tqdm
 import time
 from utils import ConstrainedNetwork, UnconstrainedNetwork
 
+DEVICE = "mps"
+
 
 def print_computation_time(D, width, depth, N=1024):
-
     training_steps = 1024  # number of training steps
 
     # we create the constraints which in this case correspond to the simplex region
     # of the corresponding ambiant space
-    constraints = ch.cat([ch.zeros(1, D), ch.eye(D)]).cuda() / np.sqrt(D)
+    constraints = ch.cat([ch.zeros(1, D), ch.eye(D)]).to(DEVICE) / np.sqrt(D)
     constraints = constraints.detach().clone()
 
     # and we create some dummy target
-    points = ch.randn(N, D).cuda() / np.sqrt(D)
-    target = ch.cos(5 * ch.linalg.norm(points, axis=1)).cuda()
+    points = ch.randn(N, D).to(DEVICE) / np.sqrt(D)
+    target = ch.cos(5 * ch.linalg.norm(points, axis=1)).to(DEVICE)
     target -= target.mean()
     target /= target.abs().max()
 
@@ -35,14 +36,13 @@ def print_computation_time(D, width, depth, N=1024):
     act = ch.nn.functional.leaky_relu
     # now we run the two baselines
     for constrained in [0, 1]:
-
         # model and optimizer definition
         if constrained:
             model = ConstrainedNetwork(constraints, D, depth, width, act)
         else:
             model = UnconstrainedNetwork(D, depth, width, act)
-        model = model.cuda()
-        output_layer = ch.nn.Linear(width, 1).cuda()
+        model = model.to(DEVICE)
+        output_layer = ch.nn.Linear(width, 1).to(DEVICE)
 
         params = list(model.parameters()) + list(output_layer.parameters())
         optim = ch.optim.AdamW(params, 0.0001)
@@ -73,7 +73,6 @@ def print_computation_time(D, width, depth, N=1024):
 
 
 if __name__ == "__main__":
-
     print_computation_time(28 * 28, width=128, depth=4)
 
     print_computation_time(2, width=512, depth=16)

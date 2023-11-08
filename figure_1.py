@@ -15,14 +15,15 @@ import torch as ch
 from tqdm import tqdm
 from utils import ConstrainedNetwork
 
+DEVICE = "mps"
+
 
 def plot_classification_case(
     width: int, depth: int, constraints: np.ndarray, training_steps=2000
 ) -> None:
-
     N = 1024
 
-    constraints = ch.from_numpy(constraints).float().cuda()
+    constraints = ch.from_numpy(constraints).float().to(DEVICE)
 
     # data generation
     points = []
@@ -33,15 +34,15 @@ def plot_classification_case(
         points.append([x, y])
         points.append([x * 1.3, y * 1.3])
 
-    points = ch.from_numpy(np.stack(points)).float().cuda()
+    points = ch.from_numpy(np.stack(points)).float().to(DEVICE)
     points += ch.randn_like(points) * 0.025
-    target = ch.from_numpy(np.tile(np.arange(2), N)).long().cuda()
+    target = ch.from_numpy(np.tile(np.arange(2), N)).long().to(DEVICE)
 
     # model and optimizer definition
     model = ConstrainedNetwork(
         constraints, 2, depth, width, ch.nn.functional.leaky_relu
-    ).cuda()
-    output_layer = ch.nn.Linear(width, 1).cuda()
+    ).to(DEVICE)
+    output_layer = ch.nn.Linear(width, 1).to(DEVICE)
 
     optim = ch.optim.AdamW(
         list(model.parameters()) + list(output_layer.parameters()),
@@ -74,7 +75,9 @@ def plot_classification_case(
             np.linspace(-domain_bound, domain_bound, 150),
             np.linspace(-domain_bound, domain_bound, 150),
         )
-        grid = ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
+        grid = (
+            ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().to(DEVICE)
+        )
         pred = output_layer(model(grid)).cpu().numpy()
         grid = grid.cpu().numpy()
         points = points.cpu().numpy()
@@ -110,7 +113,7 @@ def plot_classification_case(
     plt.xticks([])
     plt.yticks([])
     plt.subplots_adjust(0.01, 0.01, 0.99, 0.99, 0.035, 0.035)
-    plt.savefig(f"figures/constrained_classification.png")
+    plt.savefig("figures/constrained_classification.png")
     plt.close()
 
 

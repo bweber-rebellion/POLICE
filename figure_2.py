@@ -16,6 +16,8 @@ from tqdm import tqdm
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from utils import ConstrainedNetwork
 
+DEVICE = "mps"
+
 
 def plot_multicase(
     width: int,
@@ -80,7 +82,7 @@ def plot_multicase(
         np.linspace(-domain, domain, 100),
         np.linspace(-domain, domain, 100),
     )
-    grid = ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
+    grid = ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().to(DEVICE)
     if function == "wave":
         target = ch.cos(grid[:, 0] * 3) * ch.cos(grid[:, 1])
     elif function == "rays":
@@ -94,8 +96,8 @@ def plot_multicase(
     target /= target.abs().max()
 
     # model and optimizer definition
-    model = ConstrainedNetwork(constraints, 2, depth, width, activation).cuda()
-    output_layer = ch.nn.Linear(width, 1).cuda()
+    model = ConstrainedNetwork(constraints, 2, depth, width, activation).to(DEVICE)
+    output_layer = ch.nn.Linear(width, 1).to(DEVICE)
     params = list(model.parameters()) + list(output_layer.parameters())
     optim = ch.optim.AdamW(params, 0.0005)
     scheduler = ch.optim.lr_scheduler.StepLR(
@@ -104,7 +106,6 @@ def plot_multicase(
 
     # training
     with tqdm(total=training_steps // 100) as pbar:
-
         for i in range(training_steps):
             output = output_layer(model(grid))[:, 0]
             loss = ch.nn.functional.mse_loss(output, target)
@@ -179,7 +180,6 @@ def plot_multicase(
 
 
 if __name__ == "__main__":
-
     width = 256  # width of network
     depth = 4  # depth of network
 

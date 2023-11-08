@@ -15,6 +15,8 @@ import torch as ch
 from tqdm import tqdm
 from utils import ConstrainedNetwork
 
+DEVICE = "mps"
+
 
 def plot_training_evolution(
     width,
@@ -22,7 +24,6 @@ def plot_training_evolution(
     training_steps: int = 2000,
     activation: callable = ch.nn.functional.leaky_relu,
 ):
-
     # set up the triangle constraint
     constraints = np.array(
         [
@@ -34,7 +35,7 @@ def plot_training_evolution(
 
     # and create the target data (corresponding to the rays setting)
     xx, yy = np.meshgrid(np.linspace(-4, 4, 100), np.linspace(-4, 4, 100))
-    grid = ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().cuda()
+    grid = ch.from_numpy(np.stack([xx.flatten(), yy.flatten()], 1)).float().to(DEVICE)
 
     angle = ch.angle(grid[:, 0] + 1j * grid[:, 1])
     target = ch.cos(6 * angle)
@@ -43,8 +44,8 @@ def plot_training_evolution(
     target /= target.abs().max()
 
     # model and optimizer definition
-    model = ConstrainedNetwork(constraints, 2, depth, width, activation).cuda()
-    output_layer = ch.nn.Linear(width, 1).cuda()
+    model = ConstrainedNetwork(constraints, 2, depth, width, activation).to(DEVICE)
+    output_layer = ch.nn.Linear(width, 1).to(DEVICE)
     params = list(model.parameters()) + list(output_layer.parameters())
     optim = ch.optim.AdamW(params, 0.001)
     scheduler = ch.optim.lr_scheduler.StepLR(
@@ -55,7 +56,6 @@ def plot_training_evolution(
     targets = []
     stops = [5, 20, 60, training_steps - 1]  # this tells us which snapshots to keep
     with tqdm(total=training_steps // 100) as pbar:
-
         for i in range(training_steps):
             output = output_layer(model(grid))[:, 0]
             loss = ch.nn.functional.mse_loss(output, target)
@@ -98,12 +98,11 @@ def plot_training_evolution(
         axs[i].plot(constraints[:, 0], constraints[:, 1], c="k")
 
     plt.subplots_adjust(0.01, 0.01, 0.99, 0.99, 0.035, 0.035)
-    plt.savefig(f"./figures/training_evolution.png")
+    plt.savefig("./figures/training_evolution.png")
     plt.close()
 
 
 if __name__ == "__main__":
-
     width = 256  # width of network
     depth = 3  # depth of network
     plot_training_evolution(width, depth)
