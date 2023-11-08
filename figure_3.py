@@ -15,7 +15,7 @@ import torch as ch
 from tqdm import tqdm
 from utils import ConstrainedNetwork
 
-DEVICE = "mps"
+DEVICE = "cuda"
 
 
 def plot_training_evolution(

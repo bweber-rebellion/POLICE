@@ -16,7 +16,7 @@ from tqdm import tqdm
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from utils import ConstrainedNetwork
 
-DEVICE = "mps"
+DEVICE = "cuda"
 
 
 def plot_multicase(

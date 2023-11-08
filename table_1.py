@@ -15,7 +15,7 @@ from tqdm import tqdm
 import time
 from utils import ConstrainedNetwork, UnconstrainedNetwork
 
-DEVICE = "mps"
+DEVICE = "cuda"
 
 
 def print_computation_time(D, width, depth, N=1024):
